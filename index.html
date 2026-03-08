@@ -1,38 +1,26 @@
-<!DOCTYPE html><html lang="vi">
+<!DOCTYPE html>
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Danh sách hoạt động</title><style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Danh sách hoạt động</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js"></script>
+
+<style>
 
 body{
 font-family:Arial;
 margin:0;
 padding:20px;
 background:#f0f0f0;
-background-size:cover;
-background-position:center;
-transition:0.3s;
-}
-
-h1{
-text-align:center;
-}
-
-.controls{
-text-align:center;
-margin-bottom:20px;
-}
-
-button{
-padding:10px 14px;
-border:none;
-border-radius:8px;
-margin:5px;
-cursor:pointer;
-color:white;
 }
 
 .activity{
-background:rgba(255,255,255,0.9);
+background:white;
 padding:15px;
 margin-bottom:15px;
 border-radius:10px;
@@ -45,10 +33,6 @@ overflow-x:auto;
 margin-top:10px;
 }
 
-.imgBox{
-position:relative;
-}
-
 .gallery img{
 width:120px;
 height:120px;
@@ -57,94 +41,161 @@ border-radius:8px;
 cursor:pointer;
 }
 
-.deleteImg{
-position:absolute;
-top:6px;
-right:8px;
-background:none;
-border:none;
-color:white;
-font-size:18px;
-font-weight:bold;
-cursor:pointer;
-padding:0;
-line-height:1;
-opacity:0.8;
-}
+</style>
+</head>
 
-.deleteImg:hover{
-opacity:1;
-}
+<body>
 
-.rating{
-font-size:24px;
-}
+<h1 id="title" contenteditable="true">Danh sách hoạt động</h1>
 
-.heart{
-color:#ccc;
-cursor:pointer;
-}
-
-.heart.active{
-color:#ff2a6d;
-}
-
-.settings{
-display:none;
-background:white;
-padding:20px;
-border-radius:10px;
-margin:20px auto;
-max-width:350px;
-box-shadow:0 4px 10px rgba(0,0,0,0.2);
-}
-
-.moveBtns{
-margin-top:10px;
-}
-
-.moveBtns button{
-background:#666;
-}
-
-#imageModal{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.8);
-display:none;
-align-items:center;
-justify-content:center;
-}
-
-#imageModal img{
-max-width:90%;
-max-height:90%;
-border-radius:10px;
-}
-
-</style></head><body><h1 contenteditable="true" id="title">Danh sách hoạt động</h1><div class="controls">
 <button id="addBtn">Thêm hoạt động</button>
-<button id="settingsBtn">⚙ Settings</button>
-</div><div id="settings" class="settings"><h3>Cài đặt giao diện</h3><label>Ảnh nền</label><br>
-<input type="file" id="bgInput"><br><br>
 
-<label>Cỡ chữ</label><br>
-<input type="range" id="fontSize" min="12" max="40"><br><br>
+<div id="activities"></div>
 
-<label>Font chữ</label><br>
-<select id="fontSelect">
+<script>
 
-<option value="Arial">Arial</option>
-<option value="Verdana">Verdana</option>
-<option value="Times New Roman">Times</option>
-<option value="Courier New">Courier</option>
-</select><br><br><label>Màu chữ</label><br>
-<input type="color" id="textColor"><br><br>
+const firebaseConfig = {
+apiKey:"YOUR_API_KEY",
+authDomain:"YOUR_DOMAIN",
+projectId:"YOUR_PROJECT",
+storageBucket:"YOUR_BUCKET",
+appId:"YOUR_APP_ID"
+}
 
-<label>Màu nút</label><br>
+firebase.initializeApp(firebaseConfig)
+
+const db = firebase.firestore()
+const storage = firebase.storage()
+
+async function saveData(){
+
+const activities=[]
+
+document.querySelectorAll(".activity").forEach(act=>{
+
+const name=act.querySelector(".name").value
+const status=act.querySelector(".status").value
+
+const images=[]
+act.querySelectorAll("img").forEach(img=>{
+images.push(img.src)
+})
+
+activities.push({name,status,images})
+
+})
+
+await db.collection("activities").doc("main").set({
+title:title.innerText,
+activities
+})
+
+}
+
+async function loadData(){
+
+const doc=await db.collection("activities").doc("main").get()
+
+if(!doc.exists) return
+
+const data=doc.data()
+
+title.innerText=data.title
+
+data.activities.forEach(a=>addActivity(a))
+
+}
+
+addBtn.onclick=()=>{
+addActivity()
+}
+
+function addActivity(data=null){
+
+const div=document.createElement("div")
+div.className="activity"
+
+div.innerHTML=`
+
+<input class="name" placeholder="Tên hoạt động" style="width:100%">
+
+<br><br>
+
+<select class="status">
+<option>Chưa hoàn thành</option>
+<option>Đang chuẩn bị</option>
+<option>Đang thực hiện</option>
+<option>Đã hoàn thành</option>
+</select>
+
+<br><br>
+
+<input type="file" class="imgInput" multiple>
+
+<div class="gallery"></div>
+
+<br>
+
+<button class="deleteBtn">Xóa</button>
+
+`
+
+activities.appendChild(div)
+
+const gallery=div.querySelector(".gallery")
+const input=div.querySelector(".imgInput")
+
+input.onchange=async()=>{
+
+for(let file of input.files){
+
+const ref=storage.ref("images/"+Date.now()+file.name)
+
+await ref.put(file)
+
+const url=await ref.getDownloadURL()
+
+const img=document.createElement("img")
+img.src=url
+
+gallery.appendChild(img)
+
+saveData()
+
+}
+
+}
+
+div.querySelector(".deleteBtn").onclick=()=>{
+div.remove()
+saveData()
+}
+
+if(data){
+
+div.querySelector(".name").value=data.name
+div.querySelector(".status").value=data.status
+
+data.images.forEach(src=>{
+const img=document.createElement("img")
+img.src=src
+gallery.appendChild(img)
+})
+
+}
+
+div.querySelectorAll("input,select").forEach(el=>{
+el.addEventListener("change",saveData)
+})
+
+}
+
+loadData()
+
+</script>
+
+</body>
+</html><label>Màu nút</label><br>
 <input type="color" id="buttonColor">
 
 </div><div id="activities"></div><div id="imageModal">
