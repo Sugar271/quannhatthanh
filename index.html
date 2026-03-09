@@ -1,7 +1,13 @@
-<!DOCTYPE html><html lang="vi">
+<!DOCTYPE html>
+<html lang="vi">
+
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Danh sách hoạt động</title><style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Danh sách hoạt động</title>
+
+<style>
 
 body{
 font-family:Arial;
@@ -29,6 +35,7 @@ border-radius:8px;
 margin:5px;
 cursor:pointer;
 color:white;
+background:#444;
 }
 
 .activity{
@@ -125,10 +132,24 @@ max-height:90%;
 border-radius:10px;
 }
 
-</style></head><body><h1 contenteditable="true" id="title">Danh sách hoạt động</h1><div class="controls">
+</style>
+
+</head>
+
+<body>
+
+<h1 contenteditable="true" id="title">Danh sách hoạt động</h1>
+
+<div class="controls">
 <button id="addBtn">Thêm hoạt động</button>
 <button id="settingsBtn">⚙ Settings</button>
-</div><div id="settings" class="settings"><h3>Cài đặt giao diện</h3><label>Ảnh nền</label><br>
+</div>
+
+<div id="settings" class="settings">
+
+<h3>Cài đặt giao diện</h3>
+
+<label>Ảnh nền</label><br>
 <input type="file" id="bgInput"><br><br>
 
 <label>Cỡ chữ</label><br>
@@ -136,106 +157,50 @@ border-radius:10px;
 
 <label>Font chữ</label><br>
 <select id="fontSelect">
-
 <option value="Arial">Arial</option>
 <option value="Verdana">Verdana</option>
 <option value="Times New Roman">Times</option>
 <option value="Courier New">Courier</option>
-</select><br><br><label>Màu chữ</label><br>
+</select><br><br>
+
+<label>Màu chữ</label><br>
 <input type="color" id="textColor"><br><br>
 
 <label>Màu nút</label><br>
 <input type="color" id="buttonColor">
 
-</div><div id="activities"></div><div id="imageModal">
+</div>
+
+<div id="activities"></div>
+
+<div id="imageModal">
 <img id="modalImg">
-</div><script>
+</div>
 
-let db
-const request=indexedDB.open("activityDB",1)
+<script>
 
-request.onupgradeneeded=e=>{
-db=e.target.result
-db.createObjectStore("data",{keyPath:"id"})
-}
+const JSON_URL="https://drive.google.com/uc?export=download&id=1lk466oNFn6zCuRbxWQXnXgRbrS0OpEy5"
 
-request.onsuccess=e=>{
-db=e.target.result
-loadData()
-}
+loadFromDrive()
 
-function saveData(){
+async function loadFromDrive(){
 
-const data={
-id:"main",
-title:title.innerText,
-fontSize:document.body.style.fontSize,
-fontFamily:document.body.style.fontFamily,
-textColor:document.body.style.color,
-background:document.body.style.backgroundImage,
-buttonColor:addBtn.style.background,
-activities:[]
-}
+try{
 
-document.querySelectorAll(".activity").forEach(act=>{
+const res = await fetch(JSON_URL)
+const data = await res.json()
 
-const name=act.querySelector(".name").value
-const status=act.querySelector(".status").value
-const rating=act.querySelectorAll(".heart.active").length
+if(!data.activities) return
 
-const images=[]
-act.querySelectorAll(".gallery img").forEach(img=>{
-images.push(img.src)
+activities.innerHTML=""
+
+data.activities.forEach(a=>{
+addActivity(a)
 })
 
-data.activities.push({name,status,rating,images})
+}catch(err){
 
-})
-
-const tx=db.transaction("data","readwrite")
-tx.objectStore("data").put(data)
-
-}
-
-function loadData(){
-
-const tx=db.transaction("data","readonly")
-const store=tx.objectStore("data")
-const req=store.get("main")
-
-req.onsuccess=()=>{
-
-const data=req.result
-if(!data) return
-
-title.innerText=data.title||"Danh sách hoạt động"
-
-if(data.fontSize){
-document.body.style.fontSize=data.fontSize
-fontSize.value=parseInt(data.fontSize)
-}
-
-if(data.fontFamily){
-document.body.style.fontFamily=data.fontFamily
-fontSelect.value=data.fontFamily
-}
-
-if(data.textColor){
-document.body.style.color=data.textColor
-textColor.value=data.textColor
-}
-
-if(data.background){
-document.body.style.backgroundImage=data.background
-}
-
-if(data.buttonColor){
-addBtn.style.background=data.buttonColor
-settingsBtn.style.background=data.buttonColor
-buttonColor.value=data.buttonColor
-}
-
-data.activities.forEach(a=>addActivity(a))
+console.log("Không tải được JSON",err)
 
 }
 
@@ -247,7 +212,6 @@ settings.style.display=settings.style.display==="block"?"none":"block"
 
 addBtn.onclick=()=>{
 addActivity()
-saveData()
 }
 
 function addActivity(data=null){
@@ -293,19 +257,16 @@ setupRating(div)
 
 div.querySelector(".deleteBtn").onclick=()=>{
 div.remove()
-saveData()
 }
 
 div.querySelector(".upBtn").onclick=()=>{
 const prev=div.previousElementSibling
 if(prev) activities.insertBefore(div,prev)
-saveData()
 }
 
 div.querySelector(".downBtn").onclick=()=>{
 const next=div.nextElementSibling
 if(next) activities.insertBefore(next,div)
-saveData()
 }
 
 if(data){
@@ -323,11 +284,6 @@ const hearts=div.querySelectorAll(".heart")
 for(let i=0;i<data.rating;i++) hearts[i].classList.add("active")
 
 }
-
-div.querySelectorAll("input,select").forEach(el=>{
-el.addEventListener("input",saveData)
-el.addEventListener("change",saveData)
-})
 
 }
 
@@ -351,7 +307,6 @@ del.innerText="×"
 del.onclick=e=>{
 e.stopPropagation()
 box.remove()
-saveData()
 }
 
 box.appendChild(img)
@@ -378,7 +333,6 @@ const reader=new FileReader()
 
 reader.onload=e=>{
 createImage(gallery,e.target.result)
-saveData()
 }
 
 reader.readAsDataURL(file)
@@ -406,8 +360,6 @@ hearts.forEach(h=>h.classList.remove("active"))
 
 for(let j=0;j<i;j++) hearts[j].classList.add("active")
 
-saveData()
-
 }
 
 rating.appendChild(heart)
@@ -426,7 +378,6 @@ const reader=new FileReader()
 
 reader.onload=e=>{
 document.body.style.backgroundImage="url("+e.target.result+")"
-saveData()
 }
 
 reader.readAsDataURL(file)
@@ -437,26 +388,22 @@ reader.readAsDataURL(file)
 
 fontSize.oninput=function(){
 document.body.style.fontSize=this.value+"px"
-saveData()
 }
 
 fontSelect.onchange=function(){
 document.body.style.fontFamily=this.value
-saveData()
 }
 
 textColor.onchange=function(){
 document.body.style.color=this.value
-saveData()
 }
 
 buttonColor.onchange=function(){
 addBtn.style.background=this.value
 settingsBtn.style.background=this.value
-saveData()
 }
 
-title.addEventListener("input",saveData)
+</script>
 
-</script></body>
+</body>
 </html>
