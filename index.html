@@ -1,11 +1,7 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!DOCTYPE html><html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Danh sách hoạt động</title>
-
-<style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Danh sách hoạt động</title><style>
 
 body{
 font-family:Arial;
@@ -33,7 +29,6 @@ border-radius:8px;
 margin:5px;
 cursor:pointer;
 color:white;
-background:#444;
 }
 
 .activity{
@@ -72,6 +67,13 @@ color:white;
 font-size:18px;
 font-weight:bold;
 cursor:pointer;
+padding:0;
+line-height:1;
+opacity:0.8;
+}
+
+.deleteImg:hover{
+opacity:1;
 }
 
 .rating{
@@ -123,23 +125,10 @@ max-height:90%;
 border-radius:10px;
 }
 
-</style>
-</head>
-
-<body>
-
-<h1 contenteditable="true" id="title">Danh sách hoạt động</h1>
-
-<div class="controls">
+</style></head><body><h1 contenteditable="true" id="title">Danh sách hoạt động</h1><div class="controls">
 <button id="addBtn">Thêm hoạt động</button>
 <button id="settingsBtn">⚙ Settings</button>
-</div>
-
-<div id="settings" class="settings">
-
-<h3>Cài đặt giao diện</h3>
-
-<label>Ảnh nền</label><br>
+</div><div id="settings" class="settings"><h3>Cài đặt giao diện</h3><label>Ảnh nền</label><br>
 <input type="file" id="bgInput"><br><br>
 
 <label>Cỡ chữ</label><br>
@@ -147,43 +136,38 @@ border-radius:10px;
 
 <label>Font chữ</label><br>
 <select id="fontSelect">
+
 <option value="Arial">Arial</option>
 <option value="Verdana">Verdana</option>
 <option value="Times New Roman">Times</option>
 <option value="Courier New">Courier</option>
-</select><br><br>
-
-<label>Màu chữ</label><br>
+</select><br><br><label>Màu chữ</label><br>
 <input type="color" id="textColor"><br><br>
 
 <label>Màu nút</label><br>
 <input type="color" id="buttonColor">
 
-</div>
-
-<div id="activities"></div>
-
-<div id="imageModal">
+</div><div id="activities"></div><div id="imageModal">
 <img id="modalImg">
-</div>
+</div><script>
 
-<script>
+let db
+const request=indexedDB.open("activityDB",1)
 
-/* ===================== */
-/* GOOGLE DRIVE SETTINGS */
-/* ===================== */
+request.onupgradeneeded=e=>{
+db=e.target.result
+db.createObjectStore("data",{keyPath:"id"})
+}
 
-const SCRIPT_URL="https://script.google.com/macros/s/AKfycbyqAeAr8fv4o0_LIfFA3w97TJ-sPDGqhLdWQ6da-DegSZ0zBF202neErG9hw7psaN25bw/exec"
-
-
-
-/* ===================== */
-/* SAVE DATA TO DRIVE */
-/* ===================== */
+request.onsuccess=e=>{
+db=e.target.result
+loadData()
+}
 
 function saveData(){
 
 const data={
+id:"main",
 title:title.innerText,
 fontSize:document.body.style.fontSize,
 fontFamily:document.body.style.fontFamily,
@@ -208,24 +192,20 @@ data.activities.push({name,status,rating,images})
 
 })
 
-fetch(SCRIPT_URL,{
-method:"POST",
-body:JSON.stringify(data)
-})
+const tx=db.transaction("data","readwrite")
+tx.objectStore("data").put(data)
 
 }
 
+function loadData(){
 
+const tx=db.transaction("data","readonly")
+const store=tx.objectStore("data")
+const req=store.get("main")
 
-/* ===================== */
-/* LOAD DATA FROM DRIVE */
-/* ===================== */
+req.onsuccess=()=>{
 
-async function loadData(){
-
-const res=await fetch(SCRIPT_URL)
-const data=await res.json()
-
+const data=req.result
 if(!data) return
 
 title.innerText=data.title||"Danh sách hoạt động"
@@ -255,17 +235,20 @@ settingsBtn.style.background=data.buttonColor
 buttonColor.value=data.buttonColor
 }
 
-if(data.activities){
 data.activities.forEach(a=>addActivity(a))
-}
 
 }
 
+}
 
+settingsBtn.onclick=()=>{
+settings.style.display=settings.style.display==="block"?"none":"block"
+}
 
-/* ===================== */
-/* ADD ACTIVITY */
-/* ===================== */
+addBtn.onclick=()=>{
+addActivity()
+saveData()
+}
 
 function addActivity(data=null){
 
@@ -348,12 +331,6 @@ el.addEventListener("change",saveData)
 
 }
 
-
-
-/* ===================== */
-/* IMAGE HANDLING */
-/* ===================== */
-
 function createImage(gallery,src){
 
 const box=document.createElement("div")
@@ -412,12 +389,6 @@ reader.readAsDataURL(file)
 
 }
 
-
-
-/* ===================== */
-/* HEART RATING */
-/* ===================== */
-
 function setupRating(activity){
 
 const rating=activity.querySelector(".rating")
@@ -443,21 +414,6 @@ rating.appendChild(heart)
 
 }
 
-}
-
-
-
-/* ===================== */
-/* SETTINGS */
-/* ===================== */
-
-settingsBtn.onclick=()=>{
-settings.style.display=settings.style.display==="block"?"none":"block"
-}
-
-addBtn.onclick=()=>{
-addActivity()
-saveData()
 }
 
 bgInput.onchange=function(){
@@ -502,15 +458,5 @@ saveData()
 
 title.addEventListener("input",saveData)
 
-
-
-/* ===================== */
-/* INIT */
-/* ===================== */
-
-loadData()
-
-</script>
-
-</body>
+</script></body>
 </html>
