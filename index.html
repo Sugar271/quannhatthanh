@@ -1,155 +1,4 @@
-<!DOCTYPE html><html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Danh sách hoạt động</title><style>
-
-body{
-font-family:Arial;
-margin:0;
-padding:20px;
-background:#f0f0f0;
-background-size:cover;
-background-position:center;
-transition:0.3s;
-}
-
-h1{
-text-align:center;
-}
-
-.controls{
-text-align:center;
-margin-bottom:20px;
-}
-
-button{
-padding:10px 14px;
-border:none;
-border-radius:8px;
-margin:5px;
-cursor:pointer;
-color:white;
-}
-
-.activity{
-background:rgba(255,255,255,0.9);
-padding:15px;
-margin-bottom:15px;
-border-radius:10px;
-}
-
-.gallery{
-display:flex;
-gap:10px;
-overflow-x:auto;
-margin-top:10px;
-}
-
-.imgBox{
-position:relative;
-}
-
-.gallery img{
-width:120px;
-height:120px;
-object-fit:cover;
-border-radius:8px;
-cursor:pointer;
-}
-
-.deleteImg{
-position:absolute;
-top:6px;
-right:8px;
-background:none;
-border:none;
-color:white;
-font-size:18px;
-font-weight:bold;
-cursor:pointer;
-padding:0;
-line-height:1;
-opacity:0.8;
-}
-
-.deleteImg:hover{
-opacity:1;
-}
-
-.rating{
-font-size:24px;
-}
-
-.heart{
-color:#ccc;
-cursor:pointer;
-}
-
-.heart.active{
-color:#ff2a6d;
-}
-
-.settings{
-display:none;
-background:white;
-padding:20px;
-border-radius:10px;
-margin:20px auto;
-max-width:350px;
-box-shadow:0 4px 10px rgba(0,0,0,0.2);
-}
-
-.moveBtns{
-margin-top:10px;
-}
-
-.moveBtns button{
-background:#666;
-}
-
-#imageModal{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.8);
-display:none;
-align-items:center;
-justify-content:center;
-}
-
-#imageModal img{
-max-width:90%;
-max-height:90%;
-border-radius:10px;
-}
-
-</style></head><body><h1 contenteditable="true" id="title">Danh sách hoạt động</h1><div class="controls">
-<button id="addBtn">Thêm hoạt động</button>
-<button id="settingsBtn">⚙ Settings</button>
-</div><div id="settings" class="settings"><h3>Cài đặt giao diện</h3><label>Ảnh nền</label><br>
-<input type="file" id="bgInput"><br><br>
-
-<label>Cỡ chữ</label><br>
-<input type="range" id="fontSize" min="12" max="40"><br><br>
-
-<label>Font chữ</label><br>
-<select id="fontSelect">
-
-<option value="Arial">Arial</option>
-<option value="Verdana">Verdana</option>
-<option value="Times New Roman">Times</option>
-<option value="Courier New">Courier</option>
-</select><br><br><label>Màu chữ</label><br>
-<input type="color" id="textColor"><br><br>
-
-<label>Màu nút</label><br>
-<input type="color" id="buttonColor">
-
-</div><div id="activities"></div><div id="imageModal">
-<img id="modalImg">
-</div><script>
+<script>
 
 let db
 const request=indexedDB.open("activityDB",1)
@@ -163,6 +12,53 @@ request.onsuccess=e=>{
 db=e.target.result
 loadData()
 }
+
+/* ===== LẤY DỮ LIỆU JSON ===== */
+
+function getDataJSON(){
+
+const data={
+title:title.innerText,
+fontSize:document.body.style.fontSize,
+fontFamily:document.body.style.fontFamily,
+textColor:document.body.style.color,
+background:document.body.style.backgroundImage,
+buttonColor:addBtn.style.background,
+activities:[]
+}
+
+document.querySelectorAll(".activity").forEach(act=>{
+
+const name=act.querySelector(".name").value
+const status=act.querySelector(".status").value
+const rating=act.querySelectorAll(".heart.active").length
+
+const images=[]
+act.querySelectorAll(".gallery img").forEach(img=>{
+images.push(img.src)
+})
+
+data.activities.push({name,status,rating,images})
+
+})
+
+return data
+}
+
+/* ===== UPLOAD GOOGLE DRIVE ===== */
+
+function uploadToDrive(){
+
+const data=getDataJSON()
+
+fetch("https://script.google.com/macros/s/AKfycbwQ9nUNCzX22F-Lg5ROWLA9p6hjIbotthKES_0cUbjZzLs5SpXYSlBA9x8KZmajTQqytQ/exec",{
+method:"POST",
+body:JSON.stringify(data)
+})
+
+}
+
+/* ===== LƯU DỮ LIỆU ===== */
 
 function saveData(){
 
@@ -194,6 +90,9 @@ data.activities.push({name,status,rating,images})
 
 const tx=db.transaction("data","readwrite")
 tx.objectStore("data").put(data)
+
+/* upload lên Drive */
+uploadToDrive()
 
 }
 
@@ -458,5 +357,5 @@ saveData()
 
 title.addEventListener("input",saveData)
 
-</script></body>
-</html>
+</script>
+
