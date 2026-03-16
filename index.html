@@ -168,12 +168,31 @@ border-radius:10px;
 </div>
 
 <script>
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbykU3Ev1p2JExjrpDApDP4msqxEkkpcMLBWuKsFkTEH9pPeMCLfmXTGiANGeFRrcJ6UGA/exec"
+
+async function uploadImage(base64){
+
+const res = await fetch(SCRIPT_URL,{
+method:"POST",
+body:JSON.stringify({
+type:"uploadImage",
+image:base64
+})
+})
+
+
+
+const data = await res.json()
+
+return data.url
+
+}
+
 
 /* ===================== */
 /* GOOGLE DRIVE SETTINGS */
 /* ===================== */
 
-const SCRIPT_URL="https://script.google.com/macros/s/AKfycbyqAeAr8fv4o0_LIfFA3w97TJ-sPDGqhLdWQ6da-DegSZ0zBF202neErG9hw7psaN25bw/exec"
 
 
 
@@ -210,8 +229,12 @@ data.activities.push({name,status,rating,images})
 
 fetch(SCRIPT_URL,{
 method:"POST",
-body:JSON.stringify(data)
+body:JSON.stringify({
+type:"saveData",
+payload:data
 })
+})
+
 
 }
 
@@ -399,10 +422,16 @@ for(let file of input.files){
 
 const reader=new FileReader()
 
-reader.onload=e=>{
-createImage(gallery,e.target.result)
+reader.onload = async e => {
+
+const url = await uploadImage(e.target.result)
+
+createImage(gallery,url)
+
 saveData()
+
 }
+
 
 reader.readAsDataURL(file)
 
